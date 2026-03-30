@@ -1,17 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'pizzaMenuScreen.dart';
 import 'restaurantMenuScreen.dart';
 import 'adminDashboardScreen.dart';
 
-class FeaturedRestaurantsScreen extends StatelessWidget {
+class FeaturedRestaurantsScreen extends StatefulWidget {
   final String role;
 
   const FeaturedRestaurantsScreen({super.key, this.role = 'student'});
 
   @override
+  State<FeaturedRestaurantsScreen> createState() =>
+      _FeaturedRestaurantsScreenState();
+}
+
+class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
+  List<Map<String, dynamic>> restaurants = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchRestaurants();
+  }
+
+  Future<void> fetchRestaurants() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/restaurants'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          restaurants = List<Map<String, dynamic>>.from(data);
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load restaurants');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // التحقق من الدور والتوجيه
-    if (role.toLowerCase() == 'admin') {
+    if (widget.role.toLowerCase() == 'admin') {
       Future.microtask(() {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
@@ -90,31 +128,31 @@ class FeaturedRestaurantsScreen extends StatelessWidget {
 
             // قائمة المطاعم
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  RestaurantCard(
-                    imageUrl: 'assets/images/Resturant.png',
-                    name: 'BBQ House',
-                    description: 'مشويات طازجة ومميزة على الشواية',
-                    tag: 'طلب الآن',
-                  ),
-                  SizedBox(height: 16),
-                  RestaurantCard(
-                    imageUrl: 'assets/images/Resturant.png',
-                    name: 'Cafe Alenoo',
-                    description: 'أجود أنواع القهوة المختصة والحلويات',
-                    tag: 'طلب الآن',
-                  ),
-                  SizedBox(height: 16),
-                  RestaurantCard(
-                    imageUrl: 'assets/images/Resturant.png',
-                    name: 'Se7tin | صحتين',
-                    description: 'ماكولات صحية وعالمية بنكهة عربية',
-                    tag: 'طلب الآن',
-                  ),
-                ],
-              ),
+              child:
+                  isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: restaurants.length,
+                        itemBuilder: (context, index) {
+                          final restaurant = restaurants[index];
+                          return Column(
+                            children: [
+                              RestaurantCard(
+                                imageUrl:
+                                    restaurant['image'] ??
+                                    'assets/images/Resturant.png',
+                                name: restaurant['name'] ?? 'مطعم غير معروف',
+                                description:
+                                    restaurant['description'] ??
+                                    'وصف غير متوفر',
+                                tag: 'طلب الآن',
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          );
+                        },
+                      ),
             ),
           ],
         ),
@@ -138,6 +176,8 @@ class FeaturedRestaurantsScreen extends StatelessWidget {
     );
   }
 }
+
+// كومبوننت الكارت الخاص بالمطعم
 
 // كومبوننت الكارت الخاص بالمطعم
 class RestaurantCard extends StatelessWidget {
@@ -184,7 +224,7 @@ class RestaurantCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.asset(
+                child: Image.network(
                   imageUrl,
                   height: 180,
                   width: double.infinity,
@@ -201,7 +241,6 @@ class RestaurantCard extends StatelessWidget {
                       ),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -242,7 +281,6 @@ class RestaurantCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-
                           // وصف المطعم
                           Text(
                             description,
