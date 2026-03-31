@@ -148,7 +148,7 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
                                     'وصف غير متوفر',
                                 tag: 'طلب الآن',
                                 restaurantId:
-                                    restaurant['id']?.toString() ?? '',
+                                    restaurant['_id']?.toString() ?? '',
                               ),
                               const SizedBox(height: 16),
                             ],

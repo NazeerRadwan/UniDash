@@ -28,29 +28,7 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
   @override
   void initState() {
     super.initState();
-    fetchCategories();
     fetchMenuItems();
-  }
-
-  Future<void> fetchCategories() async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-          'https://mustafahassanapi.ahmedbadawi.com/api/restaurants/${widget.restaurantId}',
-        ),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          categories = List<String>.from(data['categories'] ?? []);
-          if (categories.isNotEmpty) {
-            selectedCategory = categories[0];
-          }
-        });
-      }
-    } catch (e) {
-      print('Error fetching categories: $e');
-    }
   }
 
   Future<void> fetchMenuItems() async {
@@ -62,8 +40,22 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        final items = List<Map<String, dynamic>>.from(data);
+
+        // استخراج الفئات الفريدة من العناصر
+        final uniqueCategories = <String>{};
+        for (var item in items) {
+          if (item['category'] != null) {
+            uniqueCategories.add(item['category'].toString());
+          }
+        }
+
         setState(() {
-          menuItems = List<Map<String, dynamic>>.from(data);
+          menuItems = items;
+          categories = uniqueCategories.toList();
+          if (categories.isNotEmpty) {
+            selectedCategory = categories[0];
+          }
           isLoading = false;
         });
       } else {
@@ -77,6 +69,12 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
         isLoading = false;
       });
     }
+  }
+
+  List<Map<String, dynamic>> getFilteredItems() {
+    return menuItems
+        .where((item) => item['category'].toString() == selectedCategory)
+        .toList();
   }
 
   void _onItemTapped(int index) {
@@ -216,7 +214,7 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
                     ),
                   ),
                   Text(
-                    '${menuItems.length} أصناف',
+                    '${getFilteredItems().length} أصناف',
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
@@ -230,10 +228,12 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
               child:
                   isLoading
                       ? const Center(child: CircularProgressIndicator())
+                      : getFilteredItems().isEmpty
+                      ? const Center(child: Text('لا توجد عناصر في هذه الفئة'))
                       : ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         children:
-                            menuItems
+                            getFilteredItems()
                                 .map(
                                   (item) => MenuItemCard(
                                     name: item['name'] ?? 'صنف غير معروف',

@@ -1,3 +1,4 @@
+/*
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -262,8 +263,8 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
     );
   }
 }
+*/
 
-/*
 import 'package:flutter/material.dart';
 import 'package:unidash/Screens/restaurantMenuScreen.dart';
 import 'Screens/signIn.dart';
@@ -445,4 +446,3 @@ class _BrandCard extends StatelessWidget {
     );
   }
 }
-*/
