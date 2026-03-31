@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'restaurantMenuScreen.dart';
 import 'ProfileScreen.dart';
 
 class PizzaMenuScreen extends StatefulWidget {
-  const PizzaMenuScreen({super.key});
+  final String restaurantId;
+  final String restaurantName;
+
+  const PizzaMenuScreen({
+    super.key,
+    required this.restaurantId,
+    required this.restaurantName,
+  });
 
   @override
   State<PizzaMenuScreen> createState() => _PizzaMenuScreenState();
@@ -11,6 +20,64 @@ class PizzaMenuScreen extends StatefulWidget {
 
 class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
   int _selectedIndex = 2;
+  List<String> categories = [];
+  List<Map<String, dynamic>> menuItems = [];
+  String selectedCategory = '';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCategories();
+    fetchMenuItems();
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://mustafahassanapi.ahmedbadawi.com/api/restaurants/${widget.restaurantId}',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          categories = List<String>.from(data['categories'] ?? []);
+          if (categories.isNotEmpty) {
+            selectedCategory = categories[0];
+          }
+        });
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
+    }
+  }
+
+  Future<void> fetchMenuItems() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://mustafahassanapi.ahmedbadawi.com/api/restaurants/${widget.restaurantId}/items',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          menuItems = List<Map<String, dynamic>>.from(data);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching menu items: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -71,9 +138,9 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
               },
             ),
             SizedBox(width: 210),
-            const Text(
-              'باريكيو',
-              style: TextStyle(
+            Text(
+              widget.restaurantName,
+              style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 27,
@@ -115,14 +182,20 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
                 scrollDirection: Axis.horizontal,
                 reverse: true,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildCategoryChip('كريب'),
-                  _buildCategoryChip('سوشي'),
-                  _buildCategoryChip('بيتزا', isSelected: true),
-                  _buildCategoryChip('شاورما'),
-                  _buildCategoryChip('مشويات'),
-                  _buildCategoryChip('سندوتشات'),
-                ],
+                children:
+                    categories
+                        .map(
+                          (category) => _buildCategoryChip(
+                            category,
+                            isSelected: selectedCategory == category,
+                            onTap: () {
+                              setState(() {
+                                selectedCategory = category;
+                              });
+                            },
+                          ),
+                        )
+                        .toList(),
               ),
             ),
 
@@ -134,14 +207,17 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 textDirection: TextDirection.rtl,
-                children: const [
+                children: [
                   Text(
-                    'قائمة البيتزا',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    'قائمة $selectedCategory',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
-                    '6 أصناف',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    '${menuItems.length} أصناف',
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
               ),
@@ -151,53 +227,23 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
 
             // قائمة الأصناف
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  MenuItemCard(
-                    name: 'بيتزا خضروات',
-                    description: 'بيتزا خضار طازجة مع صلصة موتزاريلا',
-                    price: '٨٥ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/FF6347/FFFFFF?text=Pizza+Veggies',
-                  ),
-                  MenuItemCard(
-                    name: 'مارجريتا',
-                    description: 'صلصة طماطم، جبنة موتزاريلا، ريحان',
-                    price: '٧٥ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/FF4500/FFFFFF?text=Margherita',
-                  ),
-                  MenuItemCard(
-                    name: 'بيتزا دجاج',
-                    description: 'قطع دجاج مشوية، صلصة باربيكيو، بصل',
-                    price: '١١٠ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/FFD700/000000?text=Chicken+Pizza',
-                  ),
-                  MenuItemCard(
-                    name: 'ميكس لحوم',
-                    description: 'سجق، سلامي، لحم مفروم، زيتون',
-                    price: '١٢٥ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/8B0000/FFFFFF?text=Meat+Lovers',
-                  ),
-                  MenuItemCard(
-                    name: 'بيتزا مشروم',
-                    description: 'مشروم طازج، جبنة، صلصة طماطم',
-                    price: '٩٥ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/556B2F/FFFFFF?text=Mushroom+Pizza',
-                  ),
-                  MenuItemCard(
-                    name: 'بيتزا تونة',
-                    description: 'تونة، بصل، زيتون أسود، جبنة',
-                    price: '١٠٠ ج.م',
-                    imageUrl:
-                        'https://via.placeholder.com/300x200/4682B4/FFFFFF?text=Tuna+Pizza',
-                  ),
-                ],
-              ),
+              child:
+                  isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children:
+                            menuItems
+                                .map(
+                                  (item) => MenuItemCard(
+                                    name: item['name'] ?? 'صنف غير معروف',
+                                    description: item['description'] ?? '',
+                                    price: item['price']?.toString() ?? '0',
+                                    imageUrl: item['image'] ?? '',
+                                  ),
+                                )
+                                .toList(),
+                      ),
             ),
           ],
         ),
@@ -224,20 +270,27 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
     );
   }
 
-  Widget _buildCategoryChip(String label, {bool isSelected = false}) {
+  Widget _buildCategoryChip(
+    String label, {
+    bool isSelected = false,
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
-      child: Chip(
-        label: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Chip(
+          label: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
+          backgroundColor:
+              isSelected ? const Color(0xFF0F4D38) : Colors.grey[200],
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
-        backgroundColor:
-            isSelected ? const Color(0xFF0F4D38) : Colors.grey[200],
-        padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
   }
@@ -280,23 +333,35 @@ class MenuItemCard extends StatelessWidget {
           // صورة الطبق
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/images/Pizza.png',
-              width: 110,
-              height: 110,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (context, error, stackTrace) => Container(
-                    width: 110,
-                    height: 110,
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.local_pizza,
-                      size: 40,
-                      color: Colors.grey,
+            child:
+                imageUrl.isNotEmpty
+                    ? Image.network(
+                      imageUrl,
+                      width: 110,
+                      height: 110,
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (context, error, stackTrace) => Container(
+                            width: 110,
+                            height: 110,
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.local_pizza,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
+                    )
+                    : Container(
+                      width: 110,
+                      height: 110,
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.local_pizza,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-            ),
           ),
 
           const SizedBox(width: 16),

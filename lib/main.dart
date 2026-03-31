@@ -1,10 +1,12 @@
-/*import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
 }
+
+const String baseUrl = 'https://mustafahassanapi.ahmedbadawi.com/api';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -18,6 +20,10 @@ class MyApp extends StatelessWidget {
   }
 }
 
+////////////////////////////////////////////////////
+/// 🔹 SCREEN 1: RESTAURANTS LIST
+////////////////////////////////////////////////////
+
 class RestaurantsScreen extends StatefulWidget {
   const RestaurantsScreen({super.key});
 
@@ -28,7 +34,6 @@ class RestaurantsScreen extends StatefulWidget {
 class _RestaurantsScreenState extends State<RestaurantsScreen> {
   List restaurants = [];
   bool isLoading = true;
-  String errorMessage = '';
 
   @override
   void initState() {
@@ -38,98 +43,228 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
   Future<void> fetchRestaurants() async {
     try {
-      final response = await http.get(
-        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/restaurants'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/restaurants'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print("************************************************************");
+        print(data);
 
         setState(() {
-          // لو API بيرجع ليست مباشرة
           restaurants = data is List ? data : data['data'] ?? [];
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = 'Server Error: ${response.statusCode}';
           isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        errorMessage = 'Error: $e';
-        isLoading = false;
-      });
+      print(e);
     }
   }
 
-  Future<void> refresh() async {
-    setState(() {
-      isLoading = true;
-    });
-    await fetchRestaurants();
+  String? extractId(dynamic r) {
+    return r['_id']; // 👈 الحل النهائي
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Restaurants'), centerTitle: true),
+      appBar: AppBar(title: const Text('Restaurants')),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator())
-              : errorMessage.isNotEmpty
-              ? Center(child: Text(errorMessage))
-              : RefreshIndicator(
-                onRefresh: refresh,
-                child: ListView.builder(
-                  itemCount: restaurants.length,
-                  itemBuilder: (context, index) {
-                    final restaurant = restaurants[index];
+              : ListView.builder(
+                itemCount: restaurants.length,
+                itemBuilder: (context, index) {
+                  final r = restaurants[index];
+                  final id = extractId(r);
 
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                  return Card(
+                    margin: const EdgeInsets.all(10),
+                    child: ListTile(
+                      leading:
+                          r['image'] != null
+                              ? Image.network(
+                                r['image'],
+                                width: 60,
+                                fit: BoxFit.cover,
+                              )
+                              : const Icon(Icons.restaurant),
+                      title: Text(r['name'] ?? 'No Name'),
+                      subtitle: Text(r['description'] ?? ''),
+                      onTap: () {
+                        if (id == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Invalid restaurant ID ❌'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) =>
+                                    RestaurantDetailsScreen(restaurantId: id),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+    );
+  }
+}
+
+////////////////////////////////////////////////////
+/// 🔹 SCREEN 2: DETAILS + ITEMS
+////////////////////////////////////////////////////
+
+class RestaurantDetailsScreen extends StatefulWidget {
+  final String restaurantId; // 👈 String بدل int
+
+  const RestaurantDetailsScreen({super.key, required this.restaurantId});
+
+  @override
+  State<RestaurantDetailsScreen> createState() =>
+      _RestaurantDetailsScreenState();
+}
+
+class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
+  Map restaurant = {};
+  List items = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+  }
+
+  Future<void> fetchData() async {
+    try {
+      final restaurantResponse = await http.get(
+        Uri.parse('$baseUrl/restaurants/${widget.restaurantId}'),
+      );
+
+      final itemsResponse = await http.get(
+        Uri.parse('$baseUrl/restaurants/${widget.restaurantId}/items'),
+      );
+
+      if (restaurantResponse.statusCode == 200 &&
+          itemsResponse.statusCode == 200) {
+        final restaurantData = jsonDecode(restaurantResponse.body);
+        print("************************************************************");
+
+        print(restaurantData);
+        final itemsData = jsonDecode(itemsResponse.body);
+        print("************************************************************");
+        print(itemsData);
+        setState(() {
+          restaurant =
+              restaurantData is Map
+                  ? restaurantData
+                  : restaurantData['data'] ?? {};
+
+          items = itemsData is List ? itemsData : itemsData['data'] ?? [];
+
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(restaurant['name'] ?? 'Details')),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (restaurant['image'] != null)
+                      Image.network(
+                        restaurant['image'],
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(10),
-                        leading:
-                            restaurant['image'] != null &&
-                                    restaurant['image'].toString().isNotEmpty
-                                ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    restaurant['image'],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                                : const Icon(Icons.restaurant, size: 40),
-                        title: Text(
-                          restaurant['name'] ?? 'No Name',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          restaurant['description'] ??
-                              'No Description Available',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+
+                    const SizedBox(height: 10),
+
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        restaurant['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                  },
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(restaurant['description'] ?? ''),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'Menu',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    ListView.builder(
+                      itemCount: items.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: ListTile(
+                            leading:
+                                item['image'] != null
+                                    ? Image.network(item['image'], width: 50)
+                                    : const Icon(Icons.fastfood),
+                            title: Text(item['name'] ?? ''),
+                            subtitle: Text(item['description'] ?? ''),
+                            trailing: Text(
+                              '${item['price'] ?? ''} EGP',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
     );
   }
 }
-*/
 
+/*
 import 'package:flutter/material.dart';
-import 'package:unidash/Screens/pizzaMenuScreen.dart';
 import 'package:unidash/Screens/restaurantMenuScreen.dart';
 import 'Screens/signIn.dart';
 import 'Screens/signUp.dart';
@@ -159,7 +294,7 @@ class MyApp extends StatelessWidget {
         //'/home': (context) => const HomeScreen(),
         // '/restaurantMenu': (context) => const RestaurantMenuScreen(),
         '/cart': (context) => const CartScreen(),
-        '/pizzaMenu': (context) => const PizzaMenuScreen(),
+        // '/pizzaMenu': يتم التنقل إليه من FeaturedRestaurantsScreen مع البيانات المطلوبة
       },
     );
   }
@@ -310,3 +445,4 @@ class _BrandCard extends StatelessWidget {
     );
   }
 }
+*/

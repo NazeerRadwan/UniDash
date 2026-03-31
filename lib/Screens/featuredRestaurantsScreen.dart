@@ -147,6 +147,8 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
                                     restaurant['description'] ??
                                     'وصف غير متوفر',
                                 tag: 'طلب الآن',
+                                restaurantId:
+                                    restaurant['id']?.toString() ?? '',
                               ),
                               const SizedBox(height: 16),
                             ],
@@ -179,12 +181,12 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
 
 // كومبوننت الكارت الخاص بالمطعم
 
-// كومبوننت الكارت الخاص بالمطعم
 class RestaurantCard extends StatelessWidget {
   final String imageUrl;
   final String name;
   final String description;
   final String tag;
+  final String restaurantId;
 
   const RestaurantCard({
     super.key,
@@ -192,6 +194,7 @@ class RestaurantCard extends StatelessWidget {
     required this.name,
     required this.description,
     required this.tag,
+    required this.restaurantId,
   });
 
   @override
@@ -199,7 +202,13 @@ class RestaurantCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const PizzaMenuScreen()),
+          MaterialPageRoute(
+            builder:
+                (context) => PizzaMenuScreen(
+                  restaurantId: restaurantId,
+                  restaurantName: name,
+                ),
+          ),
         );
       },
       child: Container(
