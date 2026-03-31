@@ -140,13 +140,18 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
                 );
               },
             ),
-            SizedBox(width: 210),
-            Text(
-              widget.restaurantName,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 27,
+            const Spacer(),
+            Expanded(
+              child: Text(
+                widget.restaurantName,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
               ),
             ),
           ],

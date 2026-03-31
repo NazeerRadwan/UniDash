@@ -33,7 +33,7 @@ class OrderTrackingScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'رقم الطلب $orderId',
+              'رقم الطلب ${orderId.length > 2 ? orderId.substring(0, 2) : orderId}',
               style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],

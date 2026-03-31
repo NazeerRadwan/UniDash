@@ -40,6 +40,12 @@ class CartService {
 
   CartService._internal();
 
+  // تعيين بيانات المطعم
+  void setRestaurant(String id, String name) {
+    restaurantId = id;
+    restaurantName = name;
+  }
+
   // إضافة عنصر إلى السلة
   void addItem(CartItem item) {
     final existingItemIndex = _items.indexWhere(
@@ -76,7 +82,7 @@ class CartService {
 
   // الحصول على جميع العناصر
   List<CartItem> getItems() {
-    return _items;
+    return List.from(_items); // إرجاع نسخة من القائمة، وليس المرجع المباشر
   }
 
   // مسح السلة
@@ -100,11 +106,5 @@ class CartService {
   // عدد الكميات الإجمالية
   int getTotalQuantity() {
     return _items.fold(0, (total, item) => total + item.quantity);
-  }
-
-  // تعيين معرف المطعم والاسم
-  void setRestaurant(String id, String name) {
-    restaurantId = id;
-    restaurantName = name;
   }
 }
