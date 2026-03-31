@@ -231,25 +231,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                           buttonText: 'تتبع الطلب',
                           buttonColor: Colors.grey[700]!,
                           imageUrl: _getFirstItemImage(order),
-                          showEyeIcon: true,
-                          onButtonPressed: () async {
-                            final orderId = order['_id'];
-                            final details = await fetchOrderDetails(orderId);
-                            if (details != null) {
-                              if (mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => OrderTrackingScreen(
-                                          orderId: orderId,
-                                          cartItems: [],
-                                        ),
-                                  ),
-                                );
-                              }
-                            }
-                          },
+                          onButtonPressed: () {},
                         ),
                         if (index < orders.length - 1)
                           const SizedBox(height: 16),
@@ -263,7 +245,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 }
 
 // كومبوننت الكارت الخاص بالطلب (قابل لإعادة الاستخدام)
-class OrderCard extends StatelessWidget {
+class OrderCard extends StatefulWidget {
   final String status;
   final Color statusColor;
   final String restaurantName;
@@ -274,8 +256,7 @@ class OrderCard extends StatelessWidget {
   final String buttonText;
   final Color buttonColor;
   final String? imageUrl;
-  final bool showEyeIcon;
-  final VoidCallback onButtonPressed;
+  final VoidCallback? onButtonPressed;
 
   const OrderCard({
     super.key,
@@ -289,9 +270,23 @@ class OrderCard extends StatelessWidget {
     required this.buttonText,
     required this.buttonColor,
     this.imageUrl,
-    this.showEyeIcon = false,
-    required this.onButtonPressed,
+    this.onButtonPressed,
   });
+
+  @override
+  State<OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<OrderCard> {
+  late String buttonText;
+  late Color buttonColor;
+
+  @override
+  void initState() {
+    super.initState();
+    buttonText = widget.buttonText;
+    buttonColor = widget.buttonColor;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -324,9 +319,9 @@ class OrderCard extends StatelessWidget {
                     backgroundColor: Colors.grey[100],
                     child: ClipOval(
                       child:
-                          imageUrl != null && imageUrl!.isNotEmpty
+                          widget.imageUrl != null && widget.imageUrl!.isNotEmpty
                               ? Image.network(
-                                imageUrl!,
+                                widget.imageUrl!,
                                 width: 36,
                                 height: 36,
                                 fit: BoxFit.cover,
@@ -350,14 +345,14 @@ class OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        restaurantName,
+                        widget.restaurantName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),
                       ),
                       Text(
-                        date,
+                        widget.date,
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 13,
@@ -367,26 +362,6 @@ class OrderCard extends StatelessWidget {
                   ),
                 ],
               ),
-
-              // Status Badge on right
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
             ],
           ),
 
@@ -395,10 +370,8 @@ class OrderCard extends StatelessWidget {
           // Order Items
           Row(
             children: [
-              Text(items, style: const TextStyle(fontSize: 15, height: 1.5)),
-              Spacer(),
               Text(
-                (price).toString() + " ج.م",
+                widget.items,
                 style: const TextStyle(fontSize: 15, height: 1.5),
               ),
             ],
@@ -418,7 +391,7 @@ class OrderCard extends StatelessWidget {
                     style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                   Text(
-                    '$totalPrice ج.م',
+                    '${widget.totalPrice} ج.م',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -429,37 +402,35 @@ class OrderCard extends StatelessWidget {
               ),
 
               // Action Button
-              ElevatedButton(
-                onPressed: onButtonPressed,
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    buttonText = 'بدء التحضير';
+                    buttonColor = const Color(0xFF0A4335);
+                  });
+                },
+                icon: Icon(
+                  buttonText == 'تتبع الطلب'
+                      ? Icons.remove_red_eye_outlined
+                      : Icons.check_circle_outline,
+                  size: 18,
+                ),
+                label: Text(
+                  buttonText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
+                    horizontal: 20,
                     vertical: 12,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (buttonText == 'إعادة الطلب') ...[
-                      const Icon(Icons.refresh, size: 18),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      buttonText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (showEyeIcon) ...[
-                      const SizedBox(width: 8),
-                      const Icon(Icons.remove_red_eye_outlined, size: 18),
-                    ],
-                  ],
                 ),
               ),
             ],
