@@ -2,12 +2,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
 }
-
-const String baseUrl = 'https://mustafahassanapi.ahmedbadawi.com/api';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,101 +15,143 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: RestaurantsScreen(),
+      home: LoginScreen(),
     );
   }
 }
 
-////////////////////////////////////////////////////
-/// 🔹 SCREEN 1: RESTAURANTS LIST
-////////////////////////////////////////////////////
-
-class RestaurantsScreen extends StatefulWidget {
-  const RestaurantsScreen({super.key});
+// ===================== LOGIN SCREEN =====================
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RestaurantsScreen> createState() => _RestaurantsScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RestaurantsScreenState extends State<RestaurantsScreen> {
-  List restaurants = [];
-  bool isLoading = true;
+class _LoginScreenState extends State<LoginScreen> {
+  final emailController = TextEditingController(
+    text: "admin@collegecoffee.com",
+  );
+  final passwordController = TextEditingController(text: "admin123");
+  bool isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchRestaurants();
-  }
+  void login() async {
+    setState(() => isLoading = true);
 
-  Future<void> fetchRestaurants() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/restaurants'));
+    final success = await AuthService.login(
+      emailController.text,
+      passwordController.text,
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print("************************************************************");
-        print(data);
+    setState(() => isLoading = false);
 
-        setState(() {
-          restaurants = data is List ? data : data['data'] ?? [];
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print(e);
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const OrdersScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login Failed")));
     }
-  }
-
-  String? extractId(dynamic r) {
-    return r['_id']; // 👈 الحل النهائي
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Restaurants')),
+      appBar: AppBar(title: const Text("Login")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(labelText: "Password"),
+            ),
+            const SizedBox(height: 20),
+            isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(onPressed: login, child: const Text("Login")),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===================== ORDERS SCREEN =====================
+class OrdersScreen extends StatefulWidget {
+  const OrdersScreen({super.key});
+
+  @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
+  List orders = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadOrders();
+  }
+
+  void loadOrders() async {
+    try {
+      final data = await OrderService.getOrders();
+      setState(() {
+        orders = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load orders: $e")));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Orders")),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
-                itemCount: restaurants.length,
+                itemCount: orders.length,
                 itemBuilder: (context, index) {
-                  final r = restaurants[index];
-                  final id = extractId(r);
-
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    child: ListTile(
-                      leading:
-                          r['image'] != null
-                              ? Image.network(
-                                r['image'],
-                                width: 60,
-                                fit: BoxFit.cover,
-                              )
-                              : const Icon(Icons.restaurant),
-                      title: Text(r['name'] ?? 'No Name'),
-                      subtitle: Text(r['description'] ?? ''),
-                      onTap: () {
-                        if (id == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Invalid restaurant ID ❌'),
+                  final order = orders[index];
+                  return ListTile(
+                    title: Text("Order ID: ${order['_id']}"),
+                    subtitle: Text("Total: ${order['totalPrice'] ?? 'N/A'}"),
+                    onTap: () async {
+                      // Show details when tapped
+                      final details = await OrderService.getOrderById(
+                        order['_id'],
+                      );
+                      showDialog(
+                        context: context,
+                        builder:
+                            (_) => AlertDialog(
+                              title: Text("Order Details"),
+                              content: Text(details.toString()),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("Close"),
+                                ),
+                              ],
                             ),
-                          );
-                          return;
-                        }
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) =>
-                                    RestaurantDetailsScreen(restaurantId: id),
-                          ),
-                        );
-                      },
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -118,149 +159,68 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   }
 }
 
-////////////////////////////////////////////////////
-/// 🔹 SCREEN 2: DETAILS + ITEMS
-////////////////////////////////////////////////////
+// ===================== AUTH SERVICE =====================
+class AuthService {
+  static const String baseUrl = "https://mustafahassanapi.ahmedbadawi.com/api";
 
-class RestaurantDetailsScreen extends StatefulWidget {
-  final String restaurantId; // 👈 String بدل int
+  static Future<bool> login(String email, String password) async {
+    final url = Uri.parse("$baseUrl/auth/login");
 
-  const RestaurantDetailsScreen({super.key, required this.restaurantId});
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
 
-  @override
-  State<RestaurantDetailsScreen> createState() =>
-      _RestaurantDetailsScreenState();
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString("token", data["token"]);
+      await prefs.setString("name", data["name"]);
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
-class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
-  Map restaurant = {};
-  List items = [];
-  bool isLoading = true;
+// ===================== ORDER SERVICE =====================
+class OrderService {
+  static const String baseUrl = "https://mustafahassanapi.ahmedbadawi.com/api";
 
-  @override
-  void initState() {
-    super.initState();
-    fetchData();
+  static Future<String?> getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString("token");
   }
 
-  Future<void> fetchData() async {
-    try {
-      final restaurantResponse = await http.get(
-        Uri.parse('$baseUrl/restaurants/${widget.restaurantId}'),
-      );
+  static Future<List> getOrders() async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/orders"),
+      headers: {"Authorization": "Bearer $token"},
+    );
 
-      final itemsResponse = await http.get(
-        Uri.parse('$baseUrl/restaurants/${widget.restaurantId}/items'),
-      );
-
-      if (restaurantResponse.statusCode == 200 &&
-          itemsResponse.statusCode == 200) {
-        final restaurantData = jsonDecode(restaurantResponse.body);
-        print("************************************************************");
-
-        print(restaurantData);
-        final itemsData = jsonDecode(itemsResponse.body);
-        print("************************************************************");
-        print(itemsData);
-        setState(() {
-          restaurant =
-              restaurantData is Map
-                  ? restaurantData
-                  : restaurantData['data'] ?? {};
-
-          items = itemsData is List ? itemsData : itemsData['data'] ?? [];
-
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print(e);
+    if (response.statusCode == 200) {
+      print("*************************************88888888888888888888**");
+      print(jsonDecode(response.body));
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to load orders");
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(restaurant['name'] ?? 'Details')),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (restaurant['image'] != null)
-                      Image.network(
-                        restaurant['image'],
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-
-                    const SizedBox(height: 10),
-
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        restaurant['name'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(restaurant['description'] ?? ''),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Menu',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    ListView.builder(
-                      itemCount: items.length,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          child: ListTile(
-                            leading:
-                                item['image'] != null
-                                    ? Image.network(item['image'], width: 50)
-                                    : const Icon(Icons.fastfood),
-                            title: Text(item['name'] ?? ''),
-                            subtitle: Text(item['description'] ?? ''),
-                            trailing: Text(
-                              '${item['price'] ?? ''} EGP',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+  static Future<Map<String, dynamic>> getOrderById(String id) async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/orders/$id"),
+      headers: {"Authorization": "Bearer $token"},
     );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to load order details");
+    }
   }
 }
 */

@@ -22,7 +22,18 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
   @override
   void initState() {
     super.initState();
-    fetchRestaurants();
+
+    // إذا كان الدور admin، توجيه فوراً
+    if (widget.role.toLowerCase() == 'admin') {
+      Future.microtask(() {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+        );
+      });
+    } else {
+      // وإلا جلب المطاعم
+      fetchRestaurants();
+    }
   }
 
   Future<void> fetchRestaurants() async {
@@ -30,6 +41,10 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
       final response = await http.get(
         Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/restaurants'),
       );
+
+      // التحقق من mounted قبل setState
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
@@ -40,6 +55,9 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
         throw Exception('Failed to load restaurants');
       }
     } catch (e) {
+      // التحقق من mounted قبل setState
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
@@ -48,15 +66,6 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // التحقق من الدور والتوجيه
-    if (widget.role.toLowerCase() == 'admin') {
-      Future.microtask(() {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-        );
-      });
-    }
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

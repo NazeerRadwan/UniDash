@@ -1,7 +1,131 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/cartService.dart';
+import 'orderTrackingScreen.dart';
 
-class MyOrdersScreen extends StatelessWidget {
+class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
+
+  @override
+  State<MyOrdersScreen> createState() => _MyOrdersScreenState();
+}
+
+class _MyOrdersScreenState extends State<MyOrdersScreen> {
+  List<Map<String, dynamic>> orders = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchOrders();
+  }
+
+  // جلب جميع الطلبات من API
+  Future<void> fetchOrders() async {
+    try {
+      final token = CartService.userToken;
+
+      if (token == null || token.isEmpty) {
+        setState(() {
+          errorMessage = 'يجب تسجيل الدخول أولاً';
+          isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/orders/admin'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> ordersList =
+            data is List ? data : data['orders'] ?? [];
+
+        setState(() {
+          orders = List<Map<String, dynamic>>.from(
+            ordersList.map((order) => Map<String, dynamic>.from(order as Map)),
+          );
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'فشل في جلب الطلبات';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'خطأ: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // جلب تفاصيل طلب معين
+  Future<Map<String, dynamic>?> fetchOrderDetails(String orderId) async {
+    try {
+      final token = CartService.userToken;
+
+      if (token == null || token.isEmpty) return null;
+
+      final response = await http.get(
+        Uri.parse(
+          'https://mustafahassanapi.ahmedbadawi.com/api/orders/$orderId',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching order details: $e');
+      return null;
+    }
+  }
+
+  String _getStatusColor(String? status) {
+    if (status == null) return '0F4D38';
+    if (status.toLowerCase().contains('delivered')) return '0F4D38';
+    if (status.toLowerCase().contains('pending') ||
+        status.toLowerCase().contains('preparing'))
+      return 'FFC107';
+    if (status.toLowerCase().contains('cancelled')) return 'DC3545';
+    return '0F4D38';
+  }
+
+  String _formatDate(String? date) {
+    if (date == null) return 'غير معروف';
+    try {
+      DateTime dateTime = DateTime.parse(date);
+      return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.day}/${dateTime.month}';
+    } catch (e) {
+      return date;
+    }
+  }
+
+  String _getOrderItems(Map<String, dynamic> order) {
+    final items = order['orderItems'] as List?;
+    if (items == null || items.isEmpty) return 'لا توجد عناصر';
+    return items.map((item) => '${item['qty']}x ${item['name']}').join('\n');
+  }
+
+  String? _getFirstItemImage(Map<String, dynamic> order) {
+    final items = order['orderItems'] as List?;
+    if (items == null || items.isEmpty) return null;
+    return (items[0] as Map<String, dynamic>?)?['image'] as String?;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,62 +150,113 @@ class MyOrdersScreen extends StatelessWidget {
           ),
           centerTitle: true,
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // الطلب الأول - تم التوصيل
-            OrderCard(
-              status: 'تم التوصيل',
-              statusColor: const Color(0xFF0F4D38),
-              restaurantName: 'باريكيو',
-              date: '08:30 أكتوبر 24',
-              items: '1x بيتزا خضروات (وسط)',
-              price: '85',
-              totalPrice: '85',
-              buttonText: 'إعادة الطلب',
-              buttonColor: const Color(0xFF0F4D38),
-              imagePath: 'assets/images/Barq.png',
-              onButtonPressed: () {},
-            ),
+        body:
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : errorMessage != null
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(fontSize: 16, color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            isLoading = true;
+                            errorMessage = null;
+                          });
+                          fetchOrders();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F4D38),
+                        ),
+                        child: const Text(
+                          'حاول مرة أخرى',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                : orders.isEmpty
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.shopping_bag_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'لا توجد طلبات بعد',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+                : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    final order = orders[index];
+                    final statusColorStr = _getStatusColor(order['status']);
+                    final statusColor = Color(int.parse('0x$statusColorStr'));
 
-            const SizedBox(height: 16),
-
-            // الطلب الثاني - قيد التحضير
-            OrderCard(
-              status: 'قيد التحضير',
-              statusColor: const Color(0xFFFFC107),
-              restaurantName: 'Se7tin - صحتين',
-              date: '01:15 اليوم',
-              items: '2x ساندوتش دجاج زنجر',
-              price: '120',
-              totalPrice: '120',
-              buttonText: 'تتبع الطلب',
-              buttonColor: Colors.grey[700]!,
-              imagePath: 'assets/images/Sehtin.png',
-              showEyeIcon: true,
-              onButtonPressed: () {
-                // Navigator.push إلى شاشة متابعة الطلب اللي عملناها قبل كده
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // الطلب الثالث - تم التوصيل
-            OrderCard(
-              status: 'تم التوصيل',
-              statusColor: const Color(0xFF0F4D38),
-              restaurantName: 'ماك برجر',
-              date: '09:10 أكتوبر 20',
-              items: '1x وجبة برجر دبل\n1x بطاطس وسط',
-              price: '145',
-              totalPrice: '180',
-              buttonText: 'إعادة الطلب',
-              buttonColor: const Color(0xFF0F4D38),
-              imagePath: 'assets/images/mac.png',
-              onButtonPressed: () {},
-            ),
-          ],
-        ),
+                    return Column(
+                      children: [
+                        OrderCard(
+                          status: order['status'] ?? 'غير معروف',
+                          statusColor: statusColor,
+                          restaurantName:
+                              (order['restaurant']
+                                  as Map<String, dynamic>?)?['name'] ??
+                              'مطعم',
+                          date: _formatDate(order['createdAt']),
+                          items: _getOrderItems(order),
+                          price: (order['itemsPrice'] ?? 0).toString(),
+                          totalPrice: (order['totalPrice'] ?? 0).toString(),
+                          buttonText: 'تتبع الطلب',
+                          buttonColor: Colors.grey[700]!,
+                          imageUrl: _getFirstItemImage(order),
+                          showEyeIcon: true,
+                          onButtonPressed: () async {
+                            final orderId = order['_id'];
+                            final details = await fetchOrderDetails(orderId);
+                            if (details != null) {
+                              if (mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => OrderTrackingScreen(
+                                          orderId: orderId,
+                                          cartItems: [],
+                                        ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        if (index < orders.length - 1)
+                          const SizedBox(height: 16),
+                      ],
+                    );
+                  },
+                ),
       ),
     );
   }
@@ -98,7 +273,7 @@ class OrderCard extends StatelessWidget {
   final String totalPrice;
   final String buttonText;
   final Color buttonColor;
-  final String imagePath;
+  final String? imageUrl;
   final bool showEyeIcon;
   final VoidCallback onButtonPressed;
 
@@ -113,7 +288,7 @@ class OrderCard extends StatelessWidget {
     required this.totalPrice,
     required this.buttonText,
     required this.buttonColor,
-    required this.imagePath,
+    this.imageUrl,
     this.showEyeIcon = false,
     required this.onButtonPressed,
   });
@@ -148,12 +323,25 @@ class OrderCard extends StatelessWidget {
                     radius: 30,
                     backgroundColor: Colors.grey[100],
                     child: ClipOval(
-                      child: Image.asset(
-                        imagePath,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                      ),
+                      child:
+                          imageUrl != null && imageUrl!.isNotEmpty
+                              ? Image.network(
+                                imageUrl!,
+                                width: 36,
+                                height: 36,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Icon(
+                                      Icons.image_not_supported,
+                                      size: 20,
+                                      color: Colors.grey[400],
+                                    ),
+                              )
+                              : Icon(
+                                Icons.fastfood,
+                                size: 20,
+                                color: Colors.grey[400],
+                              ),
                     ),
                   ),
                   const SizedBox(width: 12),

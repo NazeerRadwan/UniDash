@@ -275,6 +275,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        print("*************************************88888888888888888888**");
+        print(jsonDecode(response.body));
         final responseData = json.decode(response.body);
         final orderId = responseData['_id'] ?? responseData['id'] ?? '#034';
 

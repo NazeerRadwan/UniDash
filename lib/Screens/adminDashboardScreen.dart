@@ -81,7 +81,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   icon: Icons.receipt_long_outlined,
                   title: 'الطلبات الواردة',
                   subtitle: 'متابعة الطلبات الجديدة للمطعم',
-                  badge: '٣ جديدة', // يمكنك ربطه بـ Stream لاحقاً
+                  // badge: '٣ جديدة', // يمكنك ربطه بـ Stream لاحقاً
                   onTap: () {
                     Navigator.push(
                       context,

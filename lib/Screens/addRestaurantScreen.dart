@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+import '../services/cartService.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddRestaurantScreen extends StatefulWidget {
   const AddRestaurantScreen({super.key});
@@ -12,6 +16,103 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  File? _pickedImage;
+  bool _isLoading = false;
+
+  // دالة اختيار الصورة من الجهاز
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        setState(() {
+          _pickedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('خطأ في اختيار الصورة: $e')));
+    }
+  }
+
+  // دالة رفع المطعم
+  Future<void> _submitRestaurant() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_pickedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرجاء اختيار صورة المطعم')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final token = CartService.userToken;
+
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('يجب تسجيل الدخول أولاً')));
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // إنشاء طلب multipart/form-data
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/restaurants'),
+      );
+
+      // إضافة التوكن في Headers
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // إضافة الحقول النصية
+      request.fields['name'] = _nameController.text;
+      request.fields['description'] = _descriptionController.text;
+
+      // إضافة الصورة
+      request.files.add(
+        await http.MultipartFile.fromPath('image', _pickedImage!.path),
+      );
+
+      // إرسال الطلب
+      final response = await request.send();
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم إضافة المطعم بنجاح!')));
+        _nameController.clear();
+        _descriptionController.clear();
+        setState(() {
+          _pickedImage = null;
+        });
+        // العودة للشاشة السابقة بعد قليل
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) Navigator.pop(context);
+        });
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل: ${response.statusCode}')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +164,12 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 textDirection: TextDirection.rtl,
                 textAlign: TextAlign.right,
                 controller: _nameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'الرجاء إدخال اسم المطعم';
+                  }
+                  return null;
+                },
                 decoration: InputDecoration(
                   hintText: 'قصر المشويات',
                   hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -94,6 +201,12 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 textAlign: TextAlign.right,
                 controller: _descriptionController,
                 maxLines: 5,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'الرجاء إدخال وصف المطعم';
+                  }
+                  return null;
+                },
                 decoration: InputDecoration(
                   hintText: '....اكتب وصفاً مميزاً للمطعم وقائمة الطعام',
                   hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -129,9 +242,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
               // منطقة رفع الصورة
               GestureDetector(
-                onTap: () {
-                  // TODO: Open image picker
-                },
+                onTap: _pickImage,
                 child: Container(
                   width: double.infinity,
                   height: 180,
@@ -144,29 +255,67 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                       width: 2,
                     ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.cloud_upload_outlined,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'إضافة صورة',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'PNG, JPG (5 أقصى 5MB)',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                      ),
-                    ],
-                  ),
+                  child:
+                      _pickedImage == null
+                          ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.cloud_upload_outlined,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'إضافة صورة',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'PNG, JPG (5 أقصى 5MB)',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          )
+                          : Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Image.file(
+                                _pickedImage!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                              Container(
+                                color: Colors.black26,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 48,
+                                      color: Colors.green[400],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'تم اختيار الصورة',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                 ),
               ),
 
@@ -177,33 +326,40 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // TODO: Save restaurant logic
-                    }
-                  },
+                  onPressed: _isLoading ? null : _submitRestaurant,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F4D38),
+                    disabledBackgroundColor: Colors.grey[400],
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                     elevation: 0,
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'إضافة المطعم للمنصة',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(Icons.add, color: Colors.white),
-                    ],
-                  ),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                          : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'إضافة المطعم للمنصة',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Icon(Icons.add, color: Colors.white),
+                            ],
+                          ),
                 ),
               ),
             ],
