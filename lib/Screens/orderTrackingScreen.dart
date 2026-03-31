@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import '../services/cartService.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
-  const OrderTrackingScreen({super.key});
+  final String orderId;
+  final List<CartItem> cartItems;
+
+  const OrderTrackingScreen({
+    super.key,
+    this.orderId = '#034',
+    this.cartItems = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +22,9 @@ class OrderTrackingScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Column(
+        title: Column(
           children: [
-            Text(
+            const Text(
               'متابعة الطلب',
               style: TextStyle(
                 color: Colors.black,
@@ -25,8 +33,8 @@ class OrderTrackingScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'رقم الطلب #034',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              'رقم الطلب $orderId',
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),
@@ -102,69 +110,96 @@ class OrderTrackingScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  // صورة الوجبة
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/Pizza.png',
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.cover,
-                    ),
+            // عرض العناصر المطلوبة
+            if (cartItems.isNotEmpty)
+              ...cartItems.map((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(width: 16),
+                  child: Row(
+                    children: [
+                      // صورة الوجبة
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          item.image,
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (context, error, stackTrace) => Container(
+                                width: 90,
+                                height: 90,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
 
-                  // معلومات الوجبة
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'وجبة برجر دجاج كريسبي',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
+                      // معلومات الوجبة
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'الكمية: ${item.quantity}',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'الفئة: ${item.category}',
+                              style: const TextStyle(
+                                color: Colors.amber,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // السعر
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${item.price * item.quantity} جنيه',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF006400),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'الكمية: 1',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'الأكثر طلباً ⭐',
-                          style: TextStyle(color: Colors.amber, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // السعر
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: const [
-                      Text(
-                        '45 جنيه',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF006400),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                );
+              }).toList()
+            else
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(child: Text('لا توجد عناصر في الطلب')),
               ),
-            ),
           ],
         ),
       ),

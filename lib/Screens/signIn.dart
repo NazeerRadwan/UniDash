@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'signUp.dart';
 import 'featuredRestaurantsScreen.dart';
+import '../services/cartService.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -41,6 +42,9 @@ class _SignInScreenState extends State<SignInScreen> {
         final data = jsonDecode(response.body);
         final token = data['token'];
         final userRole = data['role'] ?? 'student';
+
+        // حفظ التوكن في CartService
+        CartService.userToken = token;
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -110,7 +114,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
 
-                   SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   Center(
                     child: const Text(

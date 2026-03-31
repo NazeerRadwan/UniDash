@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'restaurantMenuScreen.dart';
+import 'cartScreenNew.dart';
 import 'ProfileScreen.dart';
+import '../services/cartService.dart';
 
 class PizzaMenuScreen extends StatefulWidget {
   final String restaurantId;
@@ -28,6 +30,7 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
   @override
   void initState() {
     super.initState();
+    CartService().setRestaurant(widget.restaurantId, widget.restaurantName);
     fetchMenuItems();
   }
 
@@ -131,7 +134,9 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
               ),
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const CartScreenNew(),
+                  ),
                 );
               },
             ),
@@ -236,10 +241,12 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
                             getFilteredItems()
                                 .map(
                                   (item) => MenuItemCard(
+                                    menuItemId: item['_id'] ?? '',
                                     name: item['name'] ?? 'صنف غير معروف',
                                     description: item['description'] ?? '',
                                     price: item['price']?.toString() ?? '0',
                                     imageUrl: item['image'] ?? '',
+                                    category: item['category'] ?? '',
                                   ),
                                 )
                                 .toList(),
@@ -297,19 +304,54 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
 }
 
 // كومبوننت عنصر القائمة (Menu Item)
-class MenuItemCard extends StatelessWidget {
+class MenuItemCard extends StatefulWidget {
+  final String menuItemId;
   final String name;
   final String description;
   final String price;
   final String imageUrl;
+  final String category;
 
   const MenuItemCard({
     super.key,
+    required this.menuItemId,
     required this.name,
     required this.description,
     required this.price,
     required this.imageUrl,
+    required this.category,
   });
+
+  @override
+  State<MenuItemCard> createState() => _MenuItemCardState();
+}
+
+class _MenuItemCardState extends State<MenuItemCard> {
+  int quantity = 1;
+
+  void _addToCart() {
+    final cartItem = CartItem(
+      menuItemId: widget.menuItemId,
+      name: widget.name,
+      image: widget.imageUrl,
+      price: double.tryParse(widget.price) ?? 0.0,
+      category: widget.category,
+      quantity: quantity,
+    );
+
+    CartService().addItem(cartItem);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${widget.name} تمت الإضافة للسلة'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    setState(() {
+      quantity = 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,9 +376,9 @@ class MenuItemCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child:
-                imageUrl.isNotEmpty
+                widget.imageUrl.isNotEmpty
                     ? Image.network(
-                      imageUrl,
+                      widget.imageUrl,
                       width: 110,
                       height: 110,
                       fit: BoxFit.cover,
@@ -372,7 +414,7 @@ class MenuItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  widget.name,
                   textAlign: TextAlign.left,
                   style: const TextStyle(
                     fontSize: 18,
@@ -381,7 +423,7 @@ class MenuItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  description,
+                  widget.description,
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontSize: 14,
@@ -396,11 +438,9 @@ class MenuItemCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // زر الإضافة
-
                     // السعر
                     Text(
-                      price,
+                      widget.price,
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontSize: 16,
@@ -408,18 +448,64 @@ class MenuItemCard extends StatelessWidget {
                         color: Color(0xFF0F4D38),
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
+                    // عداد الكمية
                     Container(
-                      width: 28,
-                      height: 28,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F4D38),
-                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 16,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (quantity > 1) quantity--;
+                              });
+                            },
+                            icon: const Icon(Icons.remove, size: 16),
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          Text(
+                            quantity.toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                quantity++;
+                              });
+                            },
+                            icon: const Icon(Icons.add, size: 16),
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // زر الإضافة
+                    GestureDetector(
+                      onTap: _addToCart,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F4D38),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
