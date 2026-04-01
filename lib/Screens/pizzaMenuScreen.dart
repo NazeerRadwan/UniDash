@@ -45,6 +45,7 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
         ),
       );
       if (response.statusCode == 200) {
+        print(response.body); // طباعة الاستجابة للتحقق من البيانات
         final List<dynamic> data = json.decode(response.body);
         final items = List<Map<String, dynamic>>.from(data);
 
