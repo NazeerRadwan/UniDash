@@ -3,6 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/cartService.dart';
 import 'orderTrackingScreen.dart';
+import 'profileScreen.dart';
+import 'cartScreenNew.dart';
+import 'featuredRestaurantsScreen.dart';
+import 'adminDashboardScreen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -239,6 +243,55 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     );
                   },
                 ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: 1,
+          selectedItemColor: const Color(0xFF0F4D38),
+          unselectedItemColor: Colors.grey,
+          onTap: (index) async {
+            final role =
+                CartService.userRole?.toLowerCase() ??
+                await CartService.loadRole() ??
+                'student';
+            switch (index) {
+              case 0:
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+                break;
+              case 1:
+                // Already on orders screen
+                break;
+              case 2:
+                if (role == 'admin') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const AdminDashboardScreen(),
+                    ),
+                  );
+                } else {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const FeaturedRestaurantsScreen(),
+                    ),
+                  );
+                }
+                break;
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'حسابي',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long),
+              label: 'طلباتي',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
+          ],
+        ),
       ),
     );
   }

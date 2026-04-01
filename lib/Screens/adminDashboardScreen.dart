@@ -157,14 +157,12 @@ class AdminDashboardScreen extends StatelessWidget {
               break;
             case 1:
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const CartScreenNew()),
+                MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
               );
               break;
             case 2:
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => const FeaturedRestaurantsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
               );
               break;
           }

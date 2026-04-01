@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:unidash/Screens/paymentScreen.dart';
 import 'featuredRestaurantsScreen.dart';
+import 'adminDashboardScreen.dart';
+import 'myOrdersScreen.dart';
 import '../services/cartService.dart';
 import 'ProfileScreen.dart';
 
@@ -146,7 +148,11 @@ class _CartScreenNewState extends State<CartScreenNew> {
           currentIndex: 1,
           selectedItemColor: const Color(0xFF0A4335),
           unselectedItemColor: Colors.grey,
-          onTap: (index) {
+          onTap: (index) async {
+            final role =
+                CartService.userRole?.toLowerCase() ??
+                await CartService.loadRole() ??
+                'student';
             switch (index) {
               case 0: // حسابي
                 Navigator.of(context).pushReplacement(
@@ -156,14 +162,29 @@ class _CartScreenNewState extends State<CartScreenNew> {
                 );
                 break;
               case 1: // طلباتي
-                // Already on cart screen
+                if (role == 'admin') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const MyOrdersScreen(),
+                    ),
+                  );
+                }
+                // student remains cart
                 break;
               case 2: // الرئيسية
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const FeaturedRestaurantsScreen(),
-                  ),
-                );
+                if (role == 'admin') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const AdminDashboardScreen(),
+                    ),
+                  );
+                } else {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const FeaturedRestaurantsScreen(),
+                    ),
+                  );
+                }
                 break;
             }
           },

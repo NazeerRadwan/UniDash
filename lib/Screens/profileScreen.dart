@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../services/cartService.dart';
 import 'cartScreenNew.dart';
 import 'featuredRestaurantsScreen.dart';
+import 'adminDashboardScreen.dart';
+import 'myOrdersScreen.dart';
 import 'signIn.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -271,8 +273,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
-                                    // تنفيذ تسجيل الخروج: مسح التوكن من الذاكرة المحلية
+                                    // تنفيذ تسجيل الخروج: مسح التوكن والدور من الذاكرة المحلية
                                     await CartService.clearToken();
+                                    await CartService.clearRole();
                                     Navigator.pop(context);
                                     if (mounted) {
                                       Navigator.of(context).pushReplacement(
@@ -303,22 +306,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentIndex: 0,
         selectedItemColor: const Color(0xFF0F4D38),
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
+        onTap: (index) async {
+          final role =
+              CartService.userRole?.toLowerCase() ??
+              await CartService.loadRole() ??
+              'student';
           switch (index) {
             case 0:
               // Already on profile
               break;
             case 1:
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const CartScreenNew()),
-              );
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const MyOrdersScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const CartScreenNew(),
+                  ),
+                );
+              }
               break;
             case 2:
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const FeaturedRestaurantsScreen(),
-                ),
-              );
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboardScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const FeaturedRestaurantsScreen(),
+                  ),
+                );
+              }
               break;
           }
         },

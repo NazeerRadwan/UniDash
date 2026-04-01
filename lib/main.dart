@@ -230,6 +230,8 @@ import 'package:unidash/Screens/restaurantMenuScreen.dart';
 import 'Screens/signIn.dart';
 import 'Screens/signUp.dart';
 import 'Screens/featuredRestaurantsScreen.dart';
+import 'Screens/adminDashboardScreen.dart';
+import 'Screens/myOrdersScreen.dart';
 import 'services/cartService.dart';
 
 void main() {
@@ -276,13 +278,23 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Future.delayed(const Duration(milliseconds: 1200), () async {
       final token = await CartService.loadToken();
+      final role = await CartService.loadRole();
       if (token != null && token.isNotEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const FeaturedRestaurantsScreen(),
-          ),
-        );
+        if (role != null && role.toLowerCase() == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AdminDashboardScreen(),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const FeaturedRestaurantsScreen(),
+            ),
+          );
+        }
       } else {
         Navigator.pushReplacementNamed(context, '/signin');
       }

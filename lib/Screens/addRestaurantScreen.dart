@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:convert';
+import 'package:http_parser/http_parser.dart';
 import '../services/cartService.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -77,9 +79,18 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
       request.fields['name'] = _nameController.text;
       request.fields['description'] = _descriptionController.text;
 
-      // إضافة الصورة
+      // إضافة الصورة مع تحديد نوع المحتوى
+      final mimeType =
+          _pickedImage!.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
       request.files.add(
-        await http.MultipartFile.fromPath('image', _pickedImage!.path),
+        await http.MultipartFile.fromPath(
+          'image',
+          _pickedImage!.path,
+          contentType: MediaType(
+            mimeType.split('/')[0],
+            mimeType.split('/')[1],
+          ),
+        ),
       );
 
       // إرسال الطلب
@@ -99,9 +110,13 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
           if (mounted) Navigator.pop(context);
         });
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('فشل: ${response.statusCode}')));
+        // قراءة جسم الاستجابة للحصول على تفاصيل الخطأ
+        final responseBody = await response.stream.bytesToString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل: ${response.statusCode} - $responseBody'),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(

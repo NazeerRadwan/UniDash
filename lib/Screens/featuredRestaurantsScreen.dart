@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/cartService.dart';
 import 'pizzaMenuScreen.dart';
 import 'restaurantMenuScreen.dart';
 import 'adminDashboardScreen.dart';
+import 'myOrdersScreen.dart';
 import 'profileScreen.dart';
 import 'cartScreenNew.dart';
 
@@ -91,7 +93,9 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
                 ),
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const CartScreenNew()),
+                    MaterialPageRoute(
+                      builder: (context) => const CartScreenNew(),
+                    ),
                   );
                 },
               ),
@@ -174,7 +178,11 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
         currentIndex: 2, // الصفحة الحالية (الرئيسية)
         selectedItemColor: const Color(0xFF0A4335),
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
+        onTap: (index) async {
+          final role =
+              CartService.userRole?.toLowerCase() ??
+              await CartService.loadRole() ??
+              'student';
           switch (index) {
             case 0: // حسابي
               Navigator.of(context).push(
@@ -182,12 +190,29 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
               );
               break;
             case 1: // طلباتي
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const CartScreenNew()),
-              );
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const MyOrdersScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const CartScreenNew(),
+                  ),
+                );
+              }
               break;
             case 2: // الرئيسية
-              // Already on home screen
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboardScreen(),
+                  ),
+                );
+              }
+              // student already in home
               break;
           }
         },

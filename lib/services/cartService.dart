@@ -35,6 +35,10 @@ class CartService {
   String? restaurantId;
   String? restaurantName;
   static String? userToken;
+  static String? userRole;
+
+  static const String _userTokenKey = 'user_token';
+  static const String _userRoleKey = 'user_role';
 
   factory CartService() {
     return _instance;
@@ -114,8 +118,6 @@ class CartService {
   // Token persistence helpers
   // ---------------------------------------------
 
-  static const String _userTokenKey = 'user_token';
-
   static Future<void> setToken(String token) async {
     userToken = token;
     try {
@@ -123,6 +125,27 @@ class CartService {
       await prefs.setString(_userTokenKey, token);
     } catch (_) {
       // ignore storage errors
+    }
+  }
+
+  static Future<void> setRole(String role) async {
+    userRole = role.toLowerCase();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userRoleKey, userRole!);
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  static Future<String?> loadRole() async {
+    if (userRole != null && userRole!.isNotEmpty) return userRole;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      userRole = prefs.getString(_userRoleKey);
+      return userRole;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -144,6 +167,16 @@ class CartService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_userTokenKey);
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  static Future<void> clearRole() async {
+    userRole = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userRoleKey);
     } catch (_) {
       // ignore storage errors
     }

@@ -7,6 +7,8 @@ import 'featuredRestaurantsScreen.dart';
 import '../services/cartService.dart';
 import 'ProfileScreen.dart';
 import 'cartScreenNew.dart';
+import 'adminDashboardScreen.dart';
+import 'myOrdersScreen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -383,7 +385,11 @@ class _CartScreenState extends State<CartScreen> {
         currentIndex: 1,
         selectedItemColor: const Color(0xFF0A4335),
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
+        onTap: (index) async {
+          final role =
+              CartService.userRole?.toLowerCase() ??
+              await CartService.loadRole() ??
+              'student';
           switch (index) {
             case 0: // حسابي
               Navigator.of(context).pushReplacement(
@@ -391,16 +397,34 @@ class _CartScreenState extends State<CartScreen> {
               );
               break;
             case 1: // طلباتي
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const CartScreenNew()),
-              );
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const MyOrdersScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const CartScreenNew(),
+                  ),
+                );
+              }
               break;
             case 2: // الرئيسية
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const FeaturedRestaurantsScreen(),
-                ),
-              );
+              if (role == 'admin') {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboardScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const FeaturedRestaurantsScreen(),
+                  ),
+                );
+              }
               break;
           }
         },
