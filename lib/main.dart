@@ -229,6 +229,8 @@ import 'package:flutter/material.dart';
 import 'package:unidash/Screens/restaurantMenuScreen.dart';
 import 'Screens/signIn.dart';
 import 'Screens/signUp.dart';
+import 'Screens/featuredRestaurantsScreen.dart';
+import 'services/cartService.dart';
 
 void main() {
   runApp(const MyApp());
@@ -272,8 +274,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      Navigator.pushReplacementNamed(context, '/signin');
+    Future.delayed(const Duration(milliseconds: 1200), () async {
+      final token = await CartService.loadToken();
+      if (token != null && token.isNotEmpty) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FeaturedRestaurantsScreen(),
+          ),
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, '/signin');
+      }
     });
   }
 

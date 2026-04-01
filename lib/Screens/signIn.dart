@@ -43,8 +43,8 @@ class _SignInScreenState extends State<SignInScreen> {
         final token = data['token'];
         final userRole = data['role'] ?? 'student';
 
-        // حفظ التوكن في CartService
-        CartService.userToken = token;
+        // حفظ التوكن في CartService و SharedPreferences
+        await CartService.setToken(token);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

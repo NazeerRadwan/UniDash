@@ -1,10 +1,141 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/cartService.dart';
+import 'cartScreenNew.dart';
+import 'featuredRestaurantsScreen.dart';
+import 'signIn.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final token = CartService.userToken;
+
+      if (token == null || token.isEmpty) {
+        setState(() {
+          errorMessage = 'يجب تسجيل الدخول أولاً';
+          isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/auth/me'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          userData = data as Map<String, dynamic>;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'فشل في جلب بيانات المستخدم';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'خطأ: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFFF8F0),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'حسابي',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFFF8F0),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'حسابي',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+              const SizedBox(height: 16),
+              Text(
+                errorMessage!,
+                style: const TextStyle(fontSize: 16, color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    isLoading = true;
+                    errorMessage = null;
+                  });
+                  fetchUserData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F4D38),
+                ),
+                child: const Text(
+                  'حاول مرة أخرى',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(
         0xFFFFF8F0,
@@ -71,10 +202,10 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // الاسم
-            const Text(
-              'أحمد محمد',
-              style: TextStyle(
+            // الترحيب بالمستخدم
+            Text(
+              'أهلاً بك، ${userData?['name'] ?? 'مستخدم'}',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -84,8 +215,8 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 6),
 
             // الإيميل
-            const Text(
-              'ahmed.m@university.edu',
+            Text(
+              userData?['email'] ?? 'email@example.com',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
 
@@ -139,9 +270,18 @@ class ProfileScreen extends StatelessWidget {
                                   child: const Text('إلغاء'),
                                 ),
                                 TextButton(
-                                  onPressed: () {
-                                    // تنفيذ تسجيل الخروج
+                                  onPressed: () async {
+                                    // تنفيذ تسجيل الخروج: مسح التوكن من الذاكرة المحلية
+                                    await CartService.clearToken();
                                     Navigator.pop(context);
+                                    if (mounted) {
+                                      Navigator.of(context).pushReplacement(
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => const SignInScreen(),
+                                        ),
+                                      );
+                                    }
                                   },
                                   child: const Text(
                                     'خروج',
@@ -158,6 +298,41 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        selectedItemColor: const Color(0xFF0F4D38),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Already on profile
+              break;
+            case 1:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const CartScreenNew()),
+              );
+              break;
+            case 2:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const FeaturedRestaurantsScreen(),
+                ),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'حسابي',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: 'طلباتي',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
+        ],
       ),
     );
   }

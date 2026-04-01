@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'restaurantMenuScreen.dart';
 import 'cartScreenNew.dart';
 import 'ProfileScreen.dart';
+import 'featuredRestaurantsScreen.dart';
 import '../services/cartService.dart';
 
 class PizzaMenuScreen extends StatefulWidget {
@@ -84,18 +85,25 @@ class _PizzaMenuScreenState extends State<PizzaMenuScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    } else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const CartScreen()),
-      );
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const CartScreenNew()),
+        );
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const FeaturedRestaurantsScreen(),
+          ),
+        );
+        break;
     }
-    // For index 2, stay on current screen
   }
 
   @override

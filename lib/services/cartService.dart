@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 class CartItem {
   final String menuItemId;
   final String name;
@@ -106,5 +108,44 @@ class CartService {
   // عدد الكميات الإجمالية
   int getTotalQuantity() {
     return _items.fold(0, (total, item) => total + item.quantity);
+  }
+
+  // ---------------------------------------------
+  // Token persistence helpers
+  // ---------------------------------------------
+
+  static const String _userTokenKey = 'user_token';
+
+  static Future<void> setToken(String token) async {
+    userToken = token;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userTokenKey, token);
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  static Future<String?> loadToken() async {
+    if (userToken != null && userToken!.isNotEmpty) {
+      return userToken;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      userToken = prefs.getString(_userTokenKey);
+      return userToken;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> clearToken() async {
+    userToken = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userTokenKey);
+    } catch (_) {
+      // ignore storage errors
+    }
   }
 }

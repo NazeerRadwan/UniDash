@@ -3,6 +3,8 @@ import 'myOrdersScreen.dart';
 import 'addRestaurantScreen.dart';
 import 'addMenuItemScreen.dart';
 import 'profileScreen.dart';
+import 'featuredRestaurantsScreen.dart';
+import 'cartScreenNew.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -147,18 +149,25 @@ class AdminDashboardScreen extends StatelessWidget {
         selectedItemColor: const Color(0xFF0F4D38),
         unselectedItemColor: Colors.grey,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
-            );
+          switch (index) {
+            case 0:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+              break;
+            case 1:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const CartScreenNew()),
+              );
+              break;
+            case 2:
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => const FeaturedRestaurantsScreen(),
+                ),
+              );
+              break;
           }
-          // index 2 (الرئيسية) يمكن إضافة Navigation له لاحقًا لو في شاشة رئيسية
         },
         items: const [
           BottomNavigationBarItem(

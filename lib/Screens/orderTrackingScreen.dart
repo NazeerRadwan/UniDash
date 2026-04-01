@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/cartService.dart';
+import 'featuredRestaurantsScreen.dart';
+import 'ProfileScreen.dart';
+import 'cartScreenNew.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
   final String orderId;
@@ -209,6 +212,27 @@ class OrderTrackingScreen extends StatelessWidget {
         currentIndex: 1,
         selectedItemColor: const Color(0xFF006400),
         unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          switch (index) {
+            case 0: // حسابي
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+              break;
+            case 1: // طلباتي
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const CartScreenNew()),
+              );
+              break;
+            case 2: // الرئيسية
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const FeaturedRestaurantsScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

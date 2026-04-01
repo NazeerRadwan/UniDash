@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'pizzaMenuScreen.dart';
 import 'restaurantMenuScreen.dart';
 import 'adminDashboardScreen.dart';
+import 'profileScreen.dart';
+import 'cartScreenNew.dart';
 
 class FeaturedRestaurantsScreen extends StatefulWidget {
   final String role;
@@ -89,13 +91,13 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
                 ),
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const CartScreen()),
+                    MaterialPageRoute(builder: (context) => const CartScreenNew()),
                   );
                 },
               ),
               const SizedBox(width: 172),
               const Text(
-                'اهلا بك احمد',
+                'اهلا بك ',
                 style: TextStyle(
                   color: Color(0xFF0A4335),
                   fontWeight: FontWeight.bold,
@@ -172,6 +174,23 @@ class _FeaturedRestaurantsScreenState extends State<FeaturedRestaurantsScreen> {
         currentIndex: 2, // الصفحة الحالية (الرئيسية)
         selectedItemColor: const Color(0xFF0A4335),
         unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          switch (index) {
+            case 0: // حسابي
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+              break;
+            case 1: // طلباتي
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const CartScreenNew()),
+              );
+              break;
+            case 2: // الرئيسية
+              // Already on home screen
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

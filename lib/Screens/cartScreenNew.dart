@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:unidash/Screens/paymentScreen.dart';
+import 'featuredRestaurantsScreen.dart';
 import '../services/cartService.dart';
+import 'ProfileScreen.dart';
 
 class CartScreenNew extends StatefulWidget {
   const CartScreenNew({super.key});
@@ -144,6 +146,27 @@ class _CartScreenNewState extends State<CartScreenNew> {
           currentIndex: 1,
           selectedItemColor: const Color(0xFF0A4335),
           unselectedItemColor: Colors.grey,
+          onTap: (index) {
+            switch (index) {
+              case 0: // حسابي
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+                break;
+              case 1: // طلباتي
+                // Already on cart screen
+                break;
+              case 2: // الرئيسية
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const FeaturedRestaurantsScreen(),
+                  ),
+                );
+                break;
+            }
+          },
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
