@@ -39,6 +39,8 @@ class CartService {
 
   static const String _userTokenKey = 'user_token';
   static const String _userRoleKey = 'user_role';
+  static const String _restaurantIdKey = 'restaurant_id';
+  static const String _restaurantNameKey = 'restaurant_name';
 
   factory CartService() {
     return _instance;
@@ -46,10 +48,49 @@ class CartService {
 
   CartService._internal();
 
-  // تعيين بيانات المطعم
+  // تعيين بيانات المطعم للمستخدم الحالي
   void setRestaurant(String id, String name) {
     restaurantId = id;
     restaurantName = name;
+  }
+
+  static Future<void> saveRestaurant(String id, String name) async {
+    final instance = CartService();
+    instance.restaurantId = id;
+    instance.restaurantName = name;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_restaurantIdKey, id);
+      await prefs.setString(_restaurantNameKey, name);
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  static Future<void> loadRestaurant() async {
+    final instance = CartService();
+    if (instance.restaurantId != null && instance.restaurantId!.isNotEmpty)
+      return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      instance.restaurantId = prefs.getString(_restaurantIdKey);
+      instance.restaurantName = prefs.getString(_restaurantNameKey);
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  static Future<void> clearRestaurant() async {
+    final instance = CartService();
+    instance.restaurantId = null;
+    instance.restaurantName = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_restaurantIdKey);
+      await prefs.remove(_restaurantNameKey);
+    } catch (_) {
+      // ignore storage errors
+    }
   }
 
   // إضافة عنصر إلى السلة
@@ -170,6 +211,7 @@ class CartService {
     } catch (_) {
       // ignore storage errors
     }
+    await clearRestaurant();
   }
 
   static Future<void> clearRole() async {

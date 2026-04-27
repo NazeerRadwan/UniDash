@@ -29,7 +29,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   // جلب جميع الطلبات من API
   Future<void> fetchOrders() async {
     try {
+      await CartService.loadRestaurant();
       final token = CartService.userToken;
+      final restaurantId = CartService().restaurantId;
 
       if (token == null || token.isEmpty) {
         setState(() {
@@ -39,8 +41,18 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         return;
       }
 
+      if (restaurantId == null || restaurantId.isEmpty) {
+        setState(() {
+          errorMessage = 'لا يمكن تحديد المطعم الخاص بالأدمن';
+          isLoading = false;
+        });
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse('https://mustafahassanapi.ahmedbadawi.com/api/orders/admin'),
+        Uri.parse(
+          'https://mustafahassanapi.ahmedbadawi.com/api/orders/restaurant/$restaurantId',
+        ),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

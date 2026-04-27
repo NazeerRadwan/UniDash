@@ -42,10 +42,17 @@ class _SignInScreenState extends State<SignInScreen> {
         final data = jsonDecode(response.body);
         final token = data['token'];
         final userRole = data['role'] ?? 'student';
+        final restaurantId = data['restaurant'] as String?;
+        final restaurantName = data['name'] as String? ?? '';
 
-        // حفظ التوكن والدور في CartService و SharedPreferences
+        // حفظ التوكن والدور وبيانات المطعم في CartService و SharedPreferences
         await CartService.setToken(token);
         await CartService.setRole(userRole);
+        if (restaurantId != null && restaurantId.isNotEmpty) {
+          await CartService.saveRestaurant(restaurantId, restaurantName);
+        } else {
+          await CartService.clearRestaurant();
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
